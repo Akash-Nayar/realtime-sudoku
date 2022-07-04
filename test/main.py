@@ -17,6 +17,9 @@ filename = 'test2.jpg'
 start = datetime.datetime.now()
 image = cv2.imread(path + filename)
 
+plt.imshow(image)
+plt.show()
+
 ratio = image.shape[0] / 300.0
 orig = image.copy()
 image = imutils.resize(image, height=300)
@@ -73,25 +76,27 @@ dst = np.array([
 
 ocr_image = cv2.cvtColor(cv2.warpPerspective(orig, cv2.getPerspectiveTransform(rect, dst), (maxWidth, maxHeight)),
                          cv2.COLOR_BGR2GRAY)
+ocr_image = cv2.blur(ocr_image,(10,10))
 
 # save the cropped image to file
 # ocr_image = np.array(Image.fromarray(warp.astype(np.uint8)))
 # ocr_image = cv2.cvtColor(warp, cv2.COLOR_RGB2GRAY)
+
+
 ocr_image, img_bin = cv2.threshold(ocr_image, 128, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
 ocr_image = cv2.bitwise_not(img_bin)
 
 kernel = np.ones((2, 1), np.uint8)
+
 ocr_image = cv2.erode(ocr_image, kernel, iterations=1)
 ocr_image = cv2.dilate(ocr_image, kernel, iterations=1)
 
+
 # crop outside borders
-ocr_image = ocr_image[int(len(ocr_image) * 0.015):-int(len(ocr_image) * 0.015),
-            int(len(ocr_image[0]) * 0.015):-int(len(ocr_image[0]) * 0.015)]
+# ocr_image = ocr_image[int(len(ocr_image) * 0.015):-int(len(ocr_image) * 0.015),
+#             int(len(ocr_image[0]) * 0.015):-int(len(ocr_image[0]) * 0.015)]
 plt.imshow(ocr_image)
 plt.show()
-box_height = len(ocr_image) // 9
-box_width = len(ocr_image[0]) // 9
-print(box_height, box_width)
 print(ocr_image.shape)
 # for r in range(9):
 #     for c in range(9):
@@ -126,6 +131,9 @@ for R in range(3):
                   sub_box_start_y + sub_box_padding_y:sub_box_start_y + sub_box_height - sub_box_padding_y,
                   sub_box_start_x + sub_box_padding_x:sub_box_start_x + sub_box_width - sub_box_padding_x]
 
+        plt.imshow(sub_box)
+        plt.show()
+
         current_sub_box_width = len(sub_box[0])
         current_sub_box_height = len(sub_box)
         sub_box_center_x = current_sub_box_width // 2
@@ -158,9 +166,27 @@ for R in range(3):
         print(sub_box_padding_left, sub_box_padding_right, sub_box_padding_up, sub_box_padding_down)
 
         sub_box = sub_box[sub_box_padding_up:sub_box_padding_down, sub_box_padding_left:sub_box_padding_right]
-
         plt.imshow(sub_box)
         plt.show()
+
+        box_width = len(sub_box[0]) // 3
+        box_height = len(sub_box) // 3
+        box_padding_percent = 0.0
+        box_padding_x = int(box_width * box_padding_percent)
+        box_padding_y = int(box_height * box_padding_percent)
+        for r2 in range(3):
+            for c2 in range(3):
+                box_start_x = c2 * box_width
+                box_start_y = r2 * box_height
+                print(box_start_y - box_padding_y, box_start_y + box_height + box_padding_y,
+                      box_start_x - box_padding_x,
+                      box_start_x + box_width + box_padding_x)
+                box = sub_box[max(0, box_start_y - box_padding_y):min(box_start_y + box_height + box_padding_y, len(sub_box)),
+                      max(0, box_start_x - box_padding_x):
+                      min(box_start_x + box_width + box_padding_x, len(sub_box[0]))]
+                plt.imshow(box)
+                plt.show()
+                print(pytesseract.image_to_string(box, config="--psm 10"))
 
 # cv2.imwrite("warped.png", warp)
 print(datetime.datetime.now() - start)
